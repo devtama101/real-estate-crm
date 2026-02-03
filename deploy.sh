@@ -23,9 +23,15 @@ docker build -t real-estate-crm:latest ~/real-estate-crm/real-estate-crm-src
 echo "Restarting app..."
 docker compose up -d app
 
-# Update database schema
+# Update database schema via temp container
 echo "Updating database schema..."
-docker compose exec app npx prisma db push --accept-data-loss
+docker run --rm \
+  --network real-estate-crm_real-estate-crm-network \
+  -e DATABASE_URL="$(grep DATABASE_URL .env | cut -d= -f2-)" \
+  -v $(pwd)/real-estate-crm-src:/app \
+  -w /app \
+  node:20-alpine \
+  sh -c 'npx prisma generate && npx prisma db push --accept-data-loss'
 
 # Show status
 echo ""

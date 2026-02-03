@@ -50,5 +50,12 @@ jobs:
             cd ~/real-estate-crm
             docker compose pull
             docker compose up -d
-            docker compose exec app npx prisma db push --accept-data-loss
+            cd real-estate-crm-src && git pull && cd ..
+            docker run --rm \
+              --network real-estate-crm_real-estate-crm-network \
+              -e DATABASE_URL="$(grep DATABASE_URL .env | cut -d= -f2-)" \
+              -v $(pwd)/real-estate-crm-src:/app \
+              -w /app \
+              node:20-alpine \
+              sh -c 'npx prisma generate && npx prisma db push --accept-data-loss'
             echo "Deployment successful!"
