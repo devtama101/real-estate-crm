@@ -1,0 +1,20 @@
+{
+    email your-email@example.com
+}
+
+real-estate-crm.webartisan.id {
+    reverse_proxy app:3000
+
+    encode gzip
+
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    log {
+        output file /var/log/caddy/access.log
+    }
+}

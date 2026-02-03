@@ -1,0 +1,458 @@
+// Real Estate CRM - Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(AGENT)
+
+  accounts      Account[]
+  sessions      Session[]
+  leads         Lead[]
+  properties    Property[]
+  appointments  Appointment[]
+  commissions   Commission[]
+  activities    Activity[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// LEADS
+// ============================================================
+
+model Lead {
+  id              String      @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  budgetMin       BigInt?
+  budgetMax       BigInt?
+  budgetDisplay   String?     // e.g. "$400k - $500k"
+  propertyType    String?     // "House", "Condo", "Apartment"
+  bedrooms        Int?
+  bathrooms       Int?
+  minSize         Int?        // sqft
+  preferredAreas  String[]    // Array of preferred locations
+  notes           String?     @db.Text
+  tags            String[]    // ["hot-lead", "investor", "first-time-buyer"]
+  source          LeadSource  @default(WEBSITE)
+  status          LeadStatus  @default(NEW)
+  assignedToId    String?
+  assignedTo      User?       @relation(fields: [assignedToId], references: [id])
+  propertyInterest String?    // ID of property they're interested in
+
+  // Google Calendar sync
+  googleEventId   String?     // For synced calendar events
+
+  activities      Activity[]
+  appointments    Appointment[]
+  documents       Document[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status])
+  @@index([assignedToId])
+  @@index([source])
+}
+
+enum LeadSource {
+  WEBSITE
+  RUMAH123
+  LAMUDI
+  OLX
+  REFERRAL
+  OPEN_HOUSE
+  WALK_IN
+  SOCIAL_MEDIA
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  VIEWING
+  NEGOTIATION
+  CLOSED
+  LOST
+}
+
+// ============================================================
+// PROPERTIES
+// ============================================================
+
+model Property {
+  id              String          @id @default(cuid())
+  title           String
+  description     String?         @db.Text
+  address         String
+  city            String
+  state           String
+  zipCode         String
+  country         String          @default("USA")
+
+  // Property specs
+  propertyType    PropertyType
+  bedrooms        Int
+  bathrooms       Int
+  size            Int             // sqft
+  lotSize         Int?            // sqft
+  yearBuilt       Int?
+  price           BigInt
+  status          PropertyStatus  @default(AVAILABLE)
+
+  // Location data for Google Maps
+  latitude        Float?
+  longitude       Float?
+  placeId         String?         // Google Maps Place ID
+
+  // Amenities
+  amenities       String[]        // ["pool", "garage", "garden", ...]
+
+  // Media
+  images          String[]        // Array of image URLs
+  virtualTourUrl  String?
+  featuredImage   String?
+
+  // Listing details
+  listedById      String?
+  listedBy        User?           @relation(fields: [listedById], references: [id])
+  listedDate      DateTime        @default(now())
+
+  // MLS integration (mock pattern)
+  mlsId           String?         @unique
+  mlsSource       String?         // "MLS", "Zillow", etc.
+
+  appointments    Appointment[]
+  documents       Document[]
+  commissions     Commission[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([propertyType])
+  @@index([price])
+  @@index([city])
+}
+
+enum PropertyType {
+  HOUSE
+  CONDO
+  TOWNHOUSE
+  APARTMENT
+  STUDIO
+  VILLA
+  LAND
+  COMMERCIAL
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  RENTED
+  OFF_MARKET
+}
+
+// ============================================================
+// APPOINTMENTS & CALENDAR
+// ============================================================
+
+model Appointment {
+  id          String            @id @default(cuid())
+  title       String
+  description String?           @db.Text
+  startTime   DateTime
+  endTime     DateTime
+  type        AppointmentType   @default(VIEWING)
+  status      AppointmentStatus @default(SCHEDULED)
+
+  // Relations
+  leadId      String?
+  lead        Lead?             @relation(fields: [leadId], references: [id])
+  propertyId  String?
+  property    Property?         @relation(fields: [propertyId], references: [id])
+  createdById String
+  createdBy   User              @relation(fields: [createdById], references: [id])
+
+  // Google Calendar sync
+  googleEventId   String?        @unique
+  googleCalendarId String?
+  syncStatus      SyncStatus     @default(PENDING)
+
+  // Reminders sent
+  reminderSentToAgent   Boolean  @default(false)
+  reminderSentToClient  Boolean  @default(false)
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([startTime])
+  @@index([leadId])
+  @@index([propertyId])
+}
+
+enum AppointmentType {
+  VIEWING
+  CONSULTATION
+  CONTRACT_SIGNING
+  FOLLOW_UP
+  OTHER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum SyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+// ============================================================
+// DOCUMENTS
+// ============================================================
+
+model Document {
+  id          String        @id @default(cuid())
+  name        String
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  url         String
+
+  // Relations
+  leadId      String?
+  lead        Lead?         @relation(fields: [leadId], references: [id])
+  propertyId  String?
+  property    Property?     @relation(fields: [propertyId], references: [id])
+
+  // Document metadata
+  type        DocumentType
+  category    String?       // "Contract", "Disclosure", "Report"
+  status      DocumentStatus @default(DRAFT)
+
+  // E-signature (mock pattern)
+  esignProvider String?     // "DocuSign", "HelloSign"
+  esignEnvelopeId String?   @unique
+  esignStatus    ESignStatus?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([leadId])
+  @@index([propertyId])
+  @@index([type])
+}
+
+enum DocumentType {
+  CONTRACT
+  DISCLOSURE
+  INSPECTION_REPORT
+  APPRAISAL
+  OFFER_LETTER
+  LOI
+  OTHER
+}
+
+enum DocumentStatus {
+  DRAFT
+  SENT
+  SIGNED
+  EXPIRED
+}
+
+enum ESignStatus {
+  PENDING
+  VIEWED
+  SIGNED
+  DELIVERED
+  DECLINED
+}
+
+// ============================================================
+// COMMISSIONS
+// ============================================================
+
+model Commission {
+  id          String           @id @default(cuid())
+  dealValue   BigInt
+  commissionRate Float         // e.g. 0.03 for 3%
+  commissionAmount BigInt
+  splitPercentage Float?      // If split with another agent
+  splitAmount    BigInt?
+  status      CommissionStatus @default(PENDING)
+
+  // Relations
+  propertyId  String
+  property    Property         @relation(fields: [propertyId], references: [id])
+  agentId     String
+  agent       User             @relation(fields: [agentId], references: [id])
+
+  // Payment details
+  paidDate    DateTime?
+  paidAmount  BigInt?
+
+  closedDate  DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([agentId])
+  @@index([status])
+  @@index([closedDate])
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+// ============================================================
+// ACTIVITY LOG
+// ============================================================
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  description String
+  metadata    Json?        // Flexible data for different activity types
+
+  // Relations
+  leadId      String?
+  lead        Lead?        @relation(fields: [leadId], references: [id])
+  createdById String
+  createdBy   User         @relation(fields: [createdById], references: [id])
+
+  createdAt   DateTime     @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  SMS
+  MEETING
+  NOTE
+  STATUS_CHANGE
+  VIEWING_SCHEDULED
+  PROPERTY_MATCHED
+  EMAIL_SENT
+  REMINDER_SENT
+}
+
+// ============================================================
+// EMAIL TEMPLATES & COMMUNICATION
+// ============================================================
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  body        String   @db.Text
+  category    TemplateCategory
+  variables   String[] // ["firstName", "propertyAddress", "viewingDate"]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum TemplateCategory {
+  FOLLOW_UP
+  PROPERTY_ALERT
+  VIEWING_CONFIRMATION
+  THANK_YOU
+  REENGAGEMENT
+  VIEWING_REMINDER
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  to          String
+  subject     String
+  templateId  String?
+  status      EmailStatus
+  errorMessage String?
+  resendId    String?  // Resend email ID
+  metadata    Json?
+
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+
+  @@index([to])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  FAILED
+  BOUNCED
+}

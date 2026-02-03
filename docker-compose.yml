@@ -1,0 +1,57 @@
+services:
+  app:
+    image: ghcr.io/devtama101/real-estate-crm:latest
+    container_name: real-estate-crm
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/real_estate_crm
+      - AUTH_SECRET=${AUTH_SECRET}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}
+      - NEXT_PUBLIC_GOOGLE_MAPS_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - real-estate-crm-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: real-estate-crm-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=real_estate_crm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - real-estate-crm-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: real-estate-crm-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - /var/log/caddy:/var/log/caddy
+    networks:
+      - real-estate-crm-network
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  real-estate-crm-network:
+    driver: bridge
