@@ -16,7 +16,7 @@ async function getDashboardData() {
   const closedThisMonthCount = leads.filter((l: any) => l.status === 'CLOSED').length
   const pendingCommission = properties
     .filter((p: any) => p.status === 'SOLD')
-    .reduce((sum: number, p: any) => sum + Number(p.price || 0n) * 0.03, 0)
+    .reduce((sum: number, p: any) => sum + Number(p.price || 0) * 0.03, 0)
 
   const recentLeads = leads.slice(0, 4)
 

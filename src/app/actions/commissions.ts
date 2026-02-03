@@ -77,10 +77,10 @@ export async function getCommissionSummary(agentId?: string) {
   })
 
   return {
-    pending: totalPending._sum.commissionAmount || 0,
-    approved: totalApproved._sum.commissionAmount || 0,
-    paid: totalPaid._sum.commissionAmount || 0,
-    total: totalEarned._sum.commissionAmount || 0,
+    pending: Number(totalPending._sum.commissionAmount || 0),
+    approved: Number(totalApproved._sum.commissionAmount || 0),
+    paid: Number(totalPaid._sum.commissionAmount || 0),
+    total: Number(totalEarned._sum.commissionAmount || 0),
     closedDeals,
   }
 }
@@ -162,7 +162,7 @@ export async function getMonthlyCommissions(year?: number) {
 
   commissions.forEach((c) => {
     const month = new Date(c.closedDate).getMonth()
-    monthly[month].amount += c.commissionAmount
+    monthly[month].amount += Number(c.commissionAmount)
   })
 
   return monthly

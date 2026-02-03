@@ -30,6 +30,12 @@ export const prisma = globalForPrisma.prisma ?? getPrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Add BigInt serialization for JSON.stringify
+declare global {
+  interface BigInt {
+    toJSON(): string
+  }
+}
+
 BigInt.prototype.toJSON = function () {
   return this.toString()
 }
