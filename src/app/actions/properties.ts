@@ -60,7 +60,10 @@ export async function getProperties(filters?: {
     orderBy: { listedDate: 'desc' },
   })
 
-  return properties
+  return properties.map((p) => ({
+    ...p,
+    price: Number(p.price),
+  }))
 }
 
 export async function getProperty(id: string) {
@@ -73,7 +76,12 @@ export async function getProperty(id: string) {
     },
   })
 
-  return property
+  if (!property) return null
+
+  return {
+    ...property,
+    price: Number(property.price),
+  }
 }
 
 export async function createProperty(formData: FormData) {
@@ -151,7 +159,10 @@ export async function getFeaturedProperties(limit = 3) {
     orderBy: { listedDate: 'desc' },
   })
 
-  return properties
+  return properties.map((p) => ({
+    ...p,
+    price: Number(p.price),
+  }))
 }
 
 export async function searchPropertiesByCriteria(criteria: {
@@ -184,5 +195,8 @@ export async function searchPropertiesByCriteria(criteria: {
     orderBy: { listedDate: 'desc' },
   })
 
-  return properties
+  return properties.map((p) => ({
+    ...p,
+    price: Number(p.price),
+  }))
 }

@@ -52,7 +52,7 @@ async function getAdminData() {
         leadsCount,
         activeDeals,
         closedDeals,
-        totalCommission: totalCommission._sum.paidAmount || BigInt(0),
+        totalCommission: Number(totalCommission._sum.paidAmount || 0),
       }
     })
   )
@@ -87,7 +87,7 @@ async function getAdminData() {
       totalLeads,
       totalProperties,
       activeDeals,
-      monthlyRevenue: monthlyRevenue._sum.paidAmount || BigInt(0),
+      monthlyRevenue: Number(monthlyRevenue._sum.paidAmount || 0),
     },
   }
 }

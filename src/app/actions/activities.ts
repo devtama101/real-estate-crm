@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 export async function getActivities(leadId?: string) {
@@ -30,12 +31,15 @@ export async function createActivity(data: {
   leadId?: string
   metadata?: any
 }) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
   const activity = await prisma.activity.create({
     data: {
       type: data.type as any,
       description: data.description,
       leadId: data.leadId,
-      createdById: 'system', // TODO: Get from session
+      createdById: session.user.id,
       metadata: data.metadata,
     },
   })

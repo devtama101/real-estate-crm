@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { AppointmentType, AppointmentStatus } from '@prisma/client'
@@ -52,6 +53,7 @@ export async function getAppointment(id: string) {
 }
 
 export async function createAppointment(formData: FormData) {
+  const session = await auth()
   const data = appointmentSchema.parse(Object.fromEntries(formData))
 
   const appointment = await prisma.appointment.create({
@@ -61,18 +63,18 @@ export async function createAppointment(formData: FormData) {
       endTime: new Date(data.endTime),
       type: data.type || AppointmentType.VIEWING,
       status: AppointmentStatus.SCHEDULED,
-      createdById: 'system', // TODO: Get from session
+      createdById: session?.user?.id || '',
     },
   })
 
   // Log activity if associated with a lead
-  if (appointment.leadId) {
+  if (appointment.leadId && session?.user?.id) {
     await prisma.activity.create({
       data: {
         type: 'VIEWING_SCHEDULED',
         description: `Viewing scheduled: ${appointment.title}`,
         leadId: appointment.leadId,
-        createdById: 'system',
+        createdById: session.user.id,
       },
     })
   }

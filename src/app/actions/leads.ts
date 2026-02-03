@@ -73,7 +73,11 @@ export async function getLeads(filters?: {
     orderBy: { createdAt: 'desc' },
   })
 
-  return leads
+  return leads.map((l) => ({
+    ...l,
+    budgetMin: l.budgetMin ? Number(l.budgetMin) : null,
+    budgetMax: l.budgetMax ? Number(l.budgetMax) : null,
+  }))
 }
 
 export async function getCurrentUserRole() {
@@ -114,10 +118,17 @@ export async function getLead(id: string) {
     },
   })
 
-  return lead
+  if (!lead) return null
+
+  return {
+    ...lead,
+    budgetMin: lead.budgetMin ? Number(lead.budgetMin) : null,
+    budgetMax: lead.budgetMax ? Number(lead.budgetMax) : null,
+  }
 }
 
 export async function createLead(formData: FormData) {
+  const session = await auth()
   const data = leadSchema.parse(Object.fromEntries(formData))
 
   const lead = await prisma.lead.create({
@@ -129,14 +140,16 @@ export async function createLead(formData: FormData) {
   })
 
   // Log activity
-  await prisma.activity.create({
-    data: {
-      type: 'STATUS_CHANGE',
-      description: `New lead created: ${lead.name}`,
-      leadId: lead.id,
-      createdById: 'system', // TODO: Get from session
-    },
-  })
+  if (session?.user?.id) {
+    await prisma.activity.create({
+      data: {
+        type: 'STATUS_CHANGE',
+        description: `New lead created: ${lead.name}`,
+        leadId: lead.id,
+        createdById: session.user.id,
+      },
+    })
+  }
 
   revalidatePath('/leads')
   revalidatePath('/dashboard')
@@ -157,20 +170,23 @@ export async function updateLead(id: string, formData: FormData) {
 }
 
 export async function updateLeadStatus(id: string, status: LeadStatus) {
+  const session = await auth()
   const lead = await prisma.lead.update({
     where: { id },
     data: { status },
   })
 
   // Log activity
-  await prisma.activity.create({
-    data: {
-      type: 'STATUS_CHANGE',
-      description: `Status changed to ${status}`,
-      leadId: id,
-      createdById: 'system',
-    },
-  })
+  if (session?.user?.id) {
+    await prisma.activity.create({
+      data: {
+        type: 'STATUS_CHANGE',
+        description: `Status changed to ${status}`,
+        leadId: id,
+        createdById: session.user.id,
+      },
+    })
+  }
 
   revalidatePath('/leads')
   revalidatePath(`/leads/${id}`)
@@ -198,16 +214,23 @@ export async function getPipelineData() {
     orderBy: { createdAt: 'desc' },
   })
 
-  return leads
+  return leads.map((l) => ({
+    ...l,
+    budgetMin: l.budgetMin ? Number(l.budgetMin) : null,
+    budgetMax: l.budgetMax ? Number(l.budgetMax) : null,
+  }))
 }
 
 export async function addLeadNote(leadId: string, note: string) {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
   const activity = await prisma.activity.create({
     data: {
       type: 'NOTE',
       description: note,
       leadId,
-      createdById: 'system',
+      createdById: session.user.id,
     },
   })
 

@@ -29,7 +29,13 @@ export async function getCommissions(filters?: {
     orderBy: { closedDate: 'desc' },
   })
 
-  return commissions
+  return commissions.map((c) => ({
+    ...c,
+    dealValue: Number(c.dealValue),
+    commissionAmount: Number(c.commissionAmount),
+    splitAmount: c.splitAmount ? Number(c.splitAmount) : null,
+    paidAmount: c.paidAmount ? Number(c.paidAmount) : null,
+  }))
 }
 
 export async function getCommission(id: string) {
