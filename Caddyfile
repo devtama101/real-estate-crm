@@ -1,12 +1,7 @@
-{
-    email your-email@example.com
-}
-
-real-estate-crm.webartisan.id {
+{$DOMAIN} {
     reverse_proxy app:3000
 
-    encode gzip
-
+    # Security headers
     header {
         X-Frame-Options "SAMEORIGIN"
         X-Content-Type-Options "nosniff"
@@ -14,6 +9,7 @@ real-estate-crm.webartisan.id {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 
+    # Logging
     log {
         output file /var/log/caddy/access.log
     }

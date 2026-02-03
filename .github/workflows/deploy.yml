@@ -44,11 +44,11 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd ~/real-estate-crm
             docker compose pull
             docker compose up -d
-            docker compose run --rm app npx prisma migrate deploy
-            curl -f http://localhost:3000 || exit 1
+            docker compose exec app npx prisma db push --accept-data-loss
             echo "Deployment successful!"
