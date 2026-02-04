@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Note: Admin role checks are done at the page level
-  // since middleware doesn't have direct access to Prisma
+  // since middleware edge runtime has token compatibility issues with NextAuth v5
 
   return NextResponse.next()
 }
